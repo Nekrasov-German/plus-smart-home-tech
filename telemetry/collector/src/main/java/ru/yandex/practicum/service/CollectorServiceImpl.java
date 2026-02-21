@@ -1,5 +1,6 @@
 package ru.yandex.practicum.service;
 
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class CollectorServiceImpl implements CollectorService {
                     .sendMessage(TOPIC_SENSOR, MapperSensors.switchSensorToSwitchSensorAvro(sensorEvent));
             case SensorEventType.TEMPERATURE_SENSOR_EVENT -> producer
                     .sendMessage(TOPIC_SENSOR, MapperSensors.temperatureSensorToTemperatureSensorAvro(sensorEvent));
-            default -> log.info("Неизвестный датчик" + sensorEvent.toString());
+            default -> log.info("Неизвестный датчик" + sensorEvent);
         }
 
     }
@@ -53,7 +54,12 @@ public class CollectorServiceImpl implements CollectorService {
                     .sendMessage(TOPIC_HUB, MapperHubs.scenarioAddedEventToScenarioAddedEventAvro(deviceEvent));
             case DeviceEventType.SCENARIO_REMOVED -> producer
                     .sendMessage(TOPIC_HUB, MapperHubs.scenarioRemovedEventToScenarioRemovedEventAvro(deviceEvent));
-            default -> log.info("Неизвестное устройство" + deviceEvent.toString());
+            default -> log.info("Неизвестное устройство" + deviceEvent);
         }
+    }
+
+    @PreDestroy
+    public void gracefulShutdown() {
+        producer.flush();
     }
 }

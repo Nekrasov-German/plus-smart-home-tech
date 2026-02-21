@@ -1,41 +1,41 @@
 package ru.yandex.practicum.util;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.specific.SpecificRecordBase;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.SendResult;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.stereotype.Component;
-import org.springframework.util.concurrent.ListenableFuture;
-
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class CollectorProducer {
-    @Autowired
-    private KafkaTemplate<String, SpecificRecordBase> kafkaTemplate;
+    private final KafkaProducer<String, SpecificRecordBase> kafkaProducer;
 
-    public void sendMessage(String topic, SpecificRecordBase message) {
-        Object futureObj = kafkaTemplate.send(topic, message);
+    public <T extends SpecificRecordBase> void sendMessage(String topic, String key, T avroMessage) {
+        ProducerRecord<String, T> record = new ProducerRecord<>(topic, key, avroMessage);
 
-        if (futureObj instanceof CompletableFuture) {
-            CompletableFuture<SendResult<String, SpecificRecordBase>> future =
-                    (CompletableFuture<SendResult<String, SpecificRecordBase>>) futureObj;
-            future.whenComplete((result, ex) -> {
-                if (ex != null) {
-                    log.error("Ошибка отправки сообщения в топик {}", topic, ex);
-                } else {
-                    log.info("Сообщение успешно отправлено в топик {}", topic);
-                }
-            });
-        } else if (futureObj instanceof ListenableFuture) {
-            ListenableFuture<SendResult<String, SpecificRecordBase>> future =
-                    (ListenableFuture<SendResult<String, SpecificRecordBase>>) futureObj;
-            future.addCallback(
-                    result -> log.info("Сообщение успешно отправлено в топик {}", topic),
-                    ex -> log.error("Ошибка отправки сообщения в топик {}", topic, ex)
-            );
-        }
+        kafkaProducer.send((ProducerRecord<String, SpecificRecordBase>) record, (metadata, exception) -> {
+            if (exception == null) {
+                log.info("Сообщение отправлено в топик '{}', partition: {}, offset: {}",
+                        topic, metadata.partition(), metadata.offset());
+            } else {
+                log.error("Ошибка отправки сообщения в топик '{}'", topic, exception);
+            }
+        });
+    }
+
+    public <T extends SpecificRecordBase> void sendMessage(String topic, T avroMessage) {
+        sendMessage(topic, null, avroMessage);
+    }
+
+    public void flush() {
+        kafkaProducer.flush();
+    }
+
+    public void close() {
+        log.info("Закрытие Kafka Producer...");
+        kafkaProducer.close();
     }
 }

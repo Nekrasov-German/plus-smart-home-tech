@@ -22,12 +22,12 @@ public class CollectorController {
     @PostMapping("sensors")
     public ResponseEntity<Void> getSensors(@RequestBody @Valid SensorEvent sensorEvent) {
         collectorService.getSensors(sensorEvent);
-        return ResponseEntity.ok(null);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("hubs")
     public ResponseEntity<Void> getHubs(@RequestBody @Valid DeviceEvent deviceEvent) {
         collectorService.getHubs(deviceEvent);
-        return ResponseEntity.ok(null);
+        return ResponseEntity.noContent().build();
     }
 }
