@@ -1,0 +1,8 @@
+kafka:
+  bootstrap-servers: localhost:9092
+  group-id: my-consumer-group
+  auto-offset-reset: earliest
+  key-serializer: org.apache.kafka.common.serialization.StringSerializer
+  value-serializer: ru.yandex.practicum.CollectorSerializer
+  key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  value-deserializer: ru.yandex.practicum.CollectorDeserializer
