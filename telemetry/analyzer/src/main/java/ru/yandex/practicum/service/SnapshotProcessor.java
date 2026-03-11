@@ -7,13 +7,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.kafka.telemetry.event.SensorStateAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.util.SnapshotAnalyzerConsumer;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Component
@@ -47,9 +45,6 @@ public class SnapshotProcessor implements Runnable {
             ConsumerRecords<String, SpecificRecordBase> records = analyzerConsumer.pollMessages(POLL_TIMEOUT);
 
             for (ConsumerRecord<String, SpecificRecordBase> record : records) {
-                log.info("Получено сообщение из топика '{}', partition: {}, offset: {}, key: {}",
-                        record.topic(), record.partition(), record.offset(), record.key());
-
                 processSensorSnapshotEvent(record);
                 analyzerConsumer.commitSync();
             }
@@ -61,19 +56,11 @@ public class SnapshotProcessor implements Runnable {
     }
 
     private void processSensorSnapshotEvent(ConsumerRecord<String, SpecificRecordBase> record) {
-        if (!(record.value() instanceof SensorsSnapshotAvro)) {
-            log.warn("Неподдерживаемый тип сообщения: {}", record.value().getClass());
-            return;
-        }
-
         SensorsSnapshotAvro event = (SensorsSnapshotAvro) record.value();
         String hubId = event.getHubId();
-        Map<String, SensorStateAvro> sensorsState = event.getSensorsState();
-
-        log.info("Обрабатывается снапшот для хаба: {}, датчиков: {}", hubId, sensorsState.size());
 
         try {
-            scenarioTriggerService.processSnapshotAndTriggerScenarios(hubId, sensorsState);
+            scenarioTriggerService.processSnapshotAndTriggerScenarios(hubId, event);
         } catch (Exception e) {
             log.error("Ошибка обработки снапшота для хаба {}: {}", hubId, e.getMessage(), e);
         }

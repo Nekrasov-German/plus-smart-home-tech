@@ -21,7 +21,8 @@ public class HubEventProcessor implements Runnable {
     private static final Duration POLL_TIMEOUT = Duration.ofMillis(100);
 
     private final HubAnalyzerConsumer analyzerConsumer;
-    private final HubEventRouter hubEventRouter;
+    private final DeviceService deviceService;
+    private final ScenarioService scenarioService;
 
     @Override
     public void run() {
@@ -67,7 +68,28 @@ public class HubEventProcessor implements Runnable {
         HubEventAvro event = (HubEventAvro) record.value();
 
         try {
-            hubEventRouter.routeEvent(event);
+            Object payload = event.getPayload();
+
+            switch (payload) {
+                case DeviceAddedEventAvro deviceAddedEventAvro -> {
+                    deviceService
+                            .handleAdd(event.getHubId(), deviceAddedEventAvro);
+                }
+                case DeviceRemovedEventAvro deviceRemovedEventAvro -> {
+                    deviceService
+                            .handleRemove(event.getHubId(), deviceRemovedEventAvro);
+                }
+                case ScenarioAddedEventAvro scenarioAddedEventAvro -> {
+                    scenarioService
+                            .handleAdd(event.getHubId(), scenarioAddedEventAvro);
+                }
+                case ScenarioRemovedEventAvro scenarioRemovedEventAvro -> {
+                    scenarioService
+                            .handleRemove(event.getHubId(), scenarioRemovedEventAvro);
+                }
+                case null, default -> log.warn("Неизвестный тип событие {}",
+                        payload != null ? payload.getClass().getName() : null);
+            }
         } catch (Exception e) {
             log.error("Ошибка обработки события для хаба {}: {}",
                     event.getHubId(), e.getMessage(), e);
