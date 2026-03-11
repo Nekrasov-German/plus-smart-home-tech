@@ -34,7 +34,7 @@ public class ScenarioTriggerService {
         List<Scenario> scenarios = scenarioRepository.findByHubId(hubId);
 
         for (Scenario scenario : scenarios) {
-            if (shouldTriggerScenario(scenario, event)) {
+            if (!shouldTriggerScenario(scenario, event)) {
                 executeScenarioActions(scenario, hubId);
             }
         }
@@ -54,7 +54,6 @@ public class ScenarioTriggerService {
             if (sensorState == null) {
                 return false; // Датчик не в снапшоте
             }
-
             if (!evaluateCondition(condition, sensorState)) {
                 return false; // Условие не выполнено
             }
@@ -141,11 +140,14 @@ public class ScenarioTriggerService {
             String sensorId = entry.getKey();
             Action action = entry.getValue();
 
-            DeviceActionProto deviceAction = convertToDeviceActionProto(sensorId, action);
             DeviceActionRequest request = DeviceActionRequest.newBuilder()
                     .setHubId(hubId)
                     .setScenarioName(scenario.getName())
-                    .setAction(deviceAction)
+                    .setAction(DeviceActionProto.newBuilder()
+                            .setSensorId(sensorId)
+                            .setType(ActionTypeProto.valueOf(action.getType()))
+                            .setValue(action.getValue())
+                            .build())
                     .build();
 
             try {
@@ -157,13 +159,5 @@ public class ScenarioTriggerService {
                         scenario.getName(), sensorId, e.getStatus());
             }
         }
-    }
-
-    private DeviceActionProto convertToDeviceActionProto(String sensorId, Action action) {
-        return DeviceActionProto.newBuilder()
-                .setSensorId(sensorId)
-                .setType(ActionTypeProto.valueOf(action.getType()))
-                .setValue(action.getValue() != null ? action.getValue() : 0)
-                .build();
     }
 }
