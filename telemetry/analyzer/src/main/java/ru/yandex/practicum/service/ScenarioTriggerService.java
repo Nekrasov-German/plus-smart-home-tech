@@ -1,16 +1,11 @@
 package ru.yandex.practicum.service;
 
-import io.grpc.StatusRuntimeException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.dal.ScenarioRepository;
-import ru.yandex.practicum.grpc.telemetry.event.ActionTypeProto;
-import ru.yandex.practicum.grpc.telemetry.event.DeviceActionProto;
-import ru.yandex.practicum.grpc.telemetry.event.DeviceActionRequest;
 import ru.yandex.practicum.kafka.telemetry.event.*;
-import ru.yandex.practicum.service.entity.Action;
 import ru.yandex.practicum.service.entity.Condition;
 import ru.yandex.practicum.service.entity.Scenario;
 
@@ -34,7 +29,7 @@ public class ScenarioTriggerService {
         List<Scenario> scenarios = scenarioRepository.findByHubId(hubId);
 
         for (Scenario scenario : scenarios) {
-            if (!shouldTriggerScenario(scenario, event)) {
+            if (shouldTriggerScenario(scenario, event)) {
                 executeScenarioActions(scenario, hubId);
             }
         }
@@ -69,16 +64,11 @@ public class ScenarioTriggerService {
 
         try {
             switch (payload) {
-                case ClimateSensorAvro climate -> {
-                    if (evaluateEqualsCondition(cond, climate.getCo2Level())
-                            || evaluateEqualsCondition(cond, climate.getHumidity())
-                            || evaluateEqualsCondition(cond, climate.getTemperatureC())) {
+                case MotionSensorAvro motion -> {
+                    int motionValue = motion.getMotion() ? 1 : 0;
+                    if (evaluateEqualsCondition(cond, motionValue)) {
                         return true;
                     }
-                }
-                case MotionSensorAvro motion -> {
-                    Boolean motionState = motion.getMotion();
-                    return evaluateStateCondition(cond, motionState);
                 }
                 case LightSensorAvro light -> {
                     if (evaluateEqualsCondition(cond, light.getLinkQuality())
@@ -87,12 +77,21 @@ public class ScenarioTriggerService {
                     }
                 }
                 case SwitchSensorAvro sw -> {
-                    Boolean state = sw.getState();
-                    return evaluateStateCondition(cond, state);
+                    int swValue = sw.getState() ? 1 : 0;
+                    if (evaluateEqualsCondition(cond, swValue)) {
+                        return true;
+                    }
                 }
                 case TemperatureSensorAvro temp -> {
                     if (evaluateEqualsCondition(cond, temp.getTemperatureC())
                             || evaluateEqualsCondition(cond, temp.getTemperatureF())) {
+                        return true;
+                    }
+                }
+                case ClimateSensorAvro climate -> {
+                    if (evaluateEqualsCondition(cond, climate.getCo2Level())
+                            || evaluateEqualsCondition(cond, climate.getHumidity())
+                            || evaluateEqualsCondition(cond, climate.getTemperatureC())) {
                         return true;
                     }
                 }
@@ -105,15 +104,6 @@ public class ScenarioTriggerService {
         return false;
     }
 
-    private boolean evaluateStateCondition(Condition cond, Boolean motion) {
-        switch (ConditionOperationAvro.valueOf(cond.getOperation())) {
-            case EQUALS -> {
-                return Boolean.valueOf(String.valueOf(cond.getValue())).equals(motion);
-            }
-            default -> throw new IllegalArgumentException("Операция не поддерживается");
-        }
-    }
-
     private boolean evaluateEqualsCondition(Condition cond, Integer temp) {
         int value = cond.getValue();
         switch (ConditionOperationAvro.valueOf(cond.getOperation())) {
@@ -124,7 +114,7 @@ public class ScenarioTriggerService {
                 return temp < value;
             }
             case EQUALS -> {
-                return temp.equals(value);
+                return temp == value;
             }
             default -> throw new IllegalArgumentException("Неизвестная операция: " + cond.getOperation());
         }
@@ -134,30 +124,6 @@ public class ScenarioTriggerService {
      * Выполняет действия сценария через gRPC‑вызов
      */
     private void executeScenarioActions(Scenario scenario, String hubId) {
-        Map<String, Action> actions = scenario.getActions();
-
-        for (Map.Entry<String, Action> entry : actions.entrySet()) {
-            String sensorId = entry.getKey();
-            Action action = entry.getValue();
-
-            DeviceActionRequest request = DeviceActionRequest.newBuilder()
-                    .setHubId(hubId)
-                    .setScenarioName(scenario.getName())
-                    .setAction(DeviceActionProto.newBuilder()
-                            .setSensorId(sensorId)
-                            .setType(ActionTypeProto.valueOf(action.getType()))
-                            .setValue(action.getValue())
-                            .build())
-                    .build();
-
-            try {
-                hubRouterGrpcClient.handleDeviceAction(request);
-                log.info("Выполнено действие для сценария '{}': sensor={}, action={}",
-                        scenario.getName(), sensorId, action.getType());
-            } catch (StatusRuntimeException e) {
-                log.error("Ошибка выполнения действия для сценария '{}' на датчике {}: {}",
-                        scenario.getName(), sensorId, e.getStatus());
-            }
-        }
+        hubRouterGrpcClient.handleDeviceAction(scenario, hubId);
     }
 }
