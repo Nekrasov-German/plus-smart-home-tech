@@ -14,6 +14,7 @@ import ru.yandex.practicum.kafka.telemetry.event.ScenarioRemovedEventAvro;
 import ru.yandex.practicum.service.entity.*;
 
 import java.util.HashMap;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -40,6 +41,8 @@ public class ScenarioService {
                 .actions(new HashMap<>())
                 .build();
 
+        List<Sensor> sensors = sensorRepository.findAll();
+
         // Обрабатываем условия
         for (ScenarioConditionAvro condAvro : avroEvent.getConditions()) {
             Condition condition = Condition.builder()
@@ -48,13 +51,14 @@ public class ScenarioService {
                     .value(extractValue(condAvro.getValue()))
                     .build();
 
-            // Находим датчик по ID
-            Sensor sensor = sensorRepository.findById(condAvro.getSensorId())
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            "Датчик не найден: " + condAvro.getSensorId()));
+            String sensorId = sensors.stream()
+                    .filter(sensor -> sensor.getId().equals(condAvro.getSensorId()))
+                    .findFirst()
+                    .map(Sensor::getId)
+                    .orElseThrow(() -> new EntityNotFoundException("Датчик не найден: " + condAvro.getSensorId()));
 
             // Добавляем в Map: ключ — sensorId, значение — Condition
-            scenario.getConditions().put(sensor.getId(), condition);
+            scenario.getConditions().put(sensorId, condition);
         }
 
         // Обрабатываем действия
@@ -64,12 +68,14 @@ public class ScenarioService {
                     .value(actionAvro.getValue())
                     .build();
 
-            Sensor sensor = sensorRepository.findById(actionAvro.getSensorId())
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            "Датчик не найден: " + actionAvro.getSensorId()));
+            String sensorId = sensors.stream()
+                    .filter(sensor -> sensor.getId().equals(actionAvro.getSensorId()))
+                    .findFirst()
+                    .map(Sensor::getId)
+                    .orElseThrow(() -> new EntityNotFoundException("Датчик не найден: " + actionAvro.getSensorId()));
 
             // Добавляем в Map: ключ — sensorId, значение — Action
-            scenario.getActions().put(sensor.getId(), action);
+            scenario.getActions().put(sensorId, action);
         }
 
         return scenario;
