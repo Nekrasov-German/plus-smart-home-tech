@@ -1,8 +1,14 @@
-kafka:
-  bootstrap-servers: localhost:9092
-  group-id: my-consumer-group
-  auto-offset-reset: earliest
-  key-serializer: org.apache.kafka.common.serialization.StringSerializer
-  value-serializer: ru.yandex.practicum.CollectorSerializer
-  key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-  value-deserializer: ru.yandex.practicum.CollectorDeserializer
+spring:
+  application:
+    name: aggregator
+  config:
+    import: "configserver:"
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        serviceId: config-server
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
