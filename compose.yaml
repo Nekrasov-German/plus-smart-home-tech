@@ -43,3 +43,30 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=user
       - POSTGRES_DB=analyzer
+  shopping-store-db:
+    image: postgres:16.1
+    container_name: postgres-shopping-store-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=user
+      - POSTGRES_DB=shopping
+  shopping-cart-db:
+    image: postgres:16.1
+    container_name: postgres-shopping-cart-db
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=user
+      - POSTGRES_DB=cart
+  warehouse-db:
+    image: postgres:16.1
+    container_name: postgres-warehouse-db
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=user
+      - POSTGRES_DB=warehouse
