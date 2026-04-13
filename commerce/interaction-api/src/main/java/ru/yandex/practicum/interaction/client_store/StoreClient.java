@@ -13,26 +13,26 @@ import java.util.UUID;
 @FeignClient(name = "shopping-store")
 public interface StoreClient {
 
-    @GetMapping
+    @GetMapping("/api/v1/shopping-store")
     ResponseEntity<PageProductDto> getPage(
             @RequestParam String category,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "20") Integer size,
             @RequestParam(required = false) List<String> sort);
 
-    @PutMapping
+    @PutMapping("/api/v1/shopping-store")
     ResponseEntity<ProductDto> putProduct(@RequestBody @Valid ProductDto productDto);
 
-    @PostMapping
+    @PostMapping("/api/v1/shopping-store")
     ResponseEntity<ProductDto> postProduct(@RequestBody ProductDto productDto);
 
-    @PostMapping("/removeProductFromStore")
+    @PostMapping("/api/v1/shopping-store/removeProductFromStore")
     ResponseEntity<Object> removeProduct(@RequestBody UUID id);
 
-    @PostMapping("/quantityState")
+    @PostMapping("/api/v1/shopping-store/quantityState")
     ResponseEntity<Object> quantityState(@RequestParam UUID productId,
                                                 @RequestParam String quantityState);
 
-    @GetMapping("/{productId}")
+    @GetMapping("/api/v1/shopping-store/{productId}")
     ResponseEntity<ProductDto> getProduct(@PathVariable("productId") UUID productId);
 }

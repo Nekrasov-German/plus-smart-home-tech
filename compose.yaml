@@ -43,6 +43,7 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=user
       - POSTGRES_DB=analyzer
+
   shopping-store-db:
     image: postgres:16.1
     container_name: postgres-shopping-store-db
@@ -52,6 +53,7 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=user
       - POSTGRES_DB=shopping
+
   shopping-cart-db:
     image: postgres:16.1
     container_name: postgres-shopping-cart-db
@@ -61,6 +63,7 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=user
       - POSTGRES_DB=cart
+
   warehouse-db:
     image: postgres:16.1
     container_name: postgres-warehouse-db
@@ -70,3 +73,33 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=user
       - POSTGRES_DB=warehouse
+
+  order-db:
+    image: postgres:16.1
+    container_name: postgres-order-db
+    ports:
+      - "5435:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=user
+      - POSTGRES_DB=order
+
+  payment-db:
+    image: postgres:16.1
+    container_name: postgres-payment-db
+    ports:
+      - "5436:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=user
+      - POSTGRES_DB=payment
+
+  delivery-db:
+    image: postgres:16.1
+    container_name: postgres-delivery-db
+    ports:
+      - "5437:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=user
+      - POSTGRES_DB=delivery
