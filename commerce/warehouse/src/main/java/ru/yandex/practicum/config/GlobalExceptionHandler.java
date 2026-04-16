@@ -5,7 +5,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
 import ru.yandex.practicum.interaction.exception.NoSpecifiedProductInWarehouseException;
+import ru.yandex.practicum.interaction.exception.NotAvailableServiceException;
 import ru.yandex.practicum.interaction.exception.ProductInShoppingCartLowQuantityInWarehouse;
 import ru.yandex.practicum.interaction.exception.SpecifiedProductAlreadyInWarehouseException;
 
@@ -64,6 +66,18 @@ public class GlobalExceptionHandler {
         ApiErrorResponse errorResponse = new ApiErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 "Недостаточно товара на складе",
+                ex.getMessage()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(NotAvailableServiceException.class)
+    public ResponseEntity<ApiErrorResponse> handleNotAvailableServiceException(
+            NotAvailableServiceException ex) {
+
+        ApiErrorResponse errorResponse = new ApiErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Сервис не доступен.",
                 ex.getMessage()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);

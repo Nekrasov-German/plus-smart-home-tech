@@ -5,10 +5,12 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.dal.CartRepository;
 import ru.yandex.practicum.exception.NoProductsInShoppingCartException;
 import ru.yandex.practicum.exception.NotAuthorizedUserException;
 import ru.yandex.practicum.exception.ProductNotEnoughWarehouseException;
+import ru.yandex.practicum.exception.ServiceUnavailableException;
 import ru.yandex.practicum.interaction.client_warehouse.WarehouseClient;
 import ru.yandex.practicum.interaction.dto_cart.ChangeProductQuantityRequest;
 import ru.yandex.practicum.interaction.dto_cart.ShoppingCartDto;
@@ -47,6 +49,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @Transactional
     public ShoppingCartDto addProductToCart(String userName, Map<UUID, Integer> products) {
         if (userName.isEmpty()) {
             throw new NotAuthorizedUserException(userName);
@@ -58,20 +61,43 @@ public class CartServiceImpl implements CartService {
                     .products(products)
                     .cartState(CartState.ACTIVE)
                     .build());
+            try {
+                BookedProductsDto checked = warehouseClient.checkedQuantity(
+                        CartMapper.shoppingCartToShoppingCartDto(emptyCart)).getBody();
+            } catch (FeignException e) {
+                if (e.status() >= 400 && e.status() < 500) {
+                    throw new ProductNotEnoughWarehouseException(e.getMessage());
+                } else if (e.status() >= 500) {
+                    throw new ServiceUnavailableException(e.getMessage());
+                }
+            }
+
             return CartMapper.shoppingCartToShoppingCartDto(repository.save(emptyCart));
         }
-        cartUser.get().setProducts(products);
-        //TODO add try-catch
+
+        Map<UUID, Integer> cartProduct = cartUser.get().getProducts();
+        for (UUID id : products.keySet()) {
+            if (cartProduct.containsKey(id)) {
+                cartProduct.put(id, cartProduct.get(id) + products.get(id));
+            } else {
+                cartProduct.put(id, products.get(id));
+            }
+        }
+        cartUser.get().setProducts(cartProduct);
+
         try {
             BookedProductsDto checked = warehouseClient.checkedQuantity(
                     CartMapper.shoppingCartToShoppingCartDto(cartUser.get())).getBody();
         } catch (FeignException e) {
-            if (e.status() == 400) {
+            if (e.status() >= 400 && e.status() < 500) {
                 throw new ProductNotEnoughWarehouseException(e.getMessage());
+            } else if (e.status() >= 500) {
+                throw new ServiceUnavailableException(e.getMessage());
             }
         }
 
-        return CartMapper.shoppingCartToShoppingCartDto(repository.save(cartUser.get()));
+        ShoppingCart cart = repository.save(cartUser.get());
+        return CartMapper.shoppingCartToShoppingCartDto(cart);
     }
 
     @Override

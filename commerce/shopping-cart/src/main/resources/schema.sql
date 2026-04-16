@@ -1,12 +1,12 @@
 -- Создание таблицы корзин
-CREATE TABLE carts (
+CREATE TABLE IF NOT EXISTS carts (
     shopping_cart_id UUID PRIMARY KEY,
     user_name VARCHAR(255) NOT NULL,
     cart_state VARCHAR(50) NOT NULL DEFAULT 'ACTIVE'  -- соответствует enum CartState
 );
 
 -- Создание таблицы элементов корзины для хранения Map<String, Integer>
-CREATE TABLE cart_items (
+CREATE TABLE IF NOT EXISTS cart_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     shopping_cart_id UUID NOT NULL,
     product_id UUID NOT NULL,  -- ключ из Map (ID товара)

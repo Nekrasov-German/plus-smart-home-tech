@@ -7,11 +7,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.interaction.client_warehouse.WarehouseClient;
 import ru.yandex.practicum.interaction.dto_cart.ShoppingCartDto;
-import ru.yandex.practicum.interaction.dto_warehouse.AddProductToWarehouseRequest;
-import ru.yandex.practicum.interaction.dto_warehouse.AddressDto;
-import ru.yandex.practicum.interaction.dto_warehouse.BookedProductsDto;
-import ru.yandex.practicum.interaction.dto_warehouse.NewProductInWarehouseRequest;
+import ru.yandex.practicum.interaction.dto_warehouse.*;
 import ru.yandex.practicum.service.WarehouseService;
+
+import java.util.Map;
+import java.util.UUID;
 
 @Controller
 @RequestMapping("/api/v1/warehouse")
@@ -43,5 +43,23 @@ public class WareHouseController implements WarehouseClient {
     @GetMapping("/address")
     public ResponseEntity<AddressDto> getAddress() {
         return ResponseEntity.ok().body(service.getAddress());
+    }
+
+    //Собрать товары к заказу для подготовки к отправке.
+    @PostMapping("/assembly")
+    public ResponseEntity<Void> assembly(@RequestBody AssemblyProductsForOrderRequest request) {
+        service.assembly(request);
+        return ResponseEntity.ok().body(null);
+    }
+    //Передать товары в доставку.
+    @PostMapping("/shipped")
+    public ResponseEntity<Void> shipped(@RequestBody ShippedToDeliveryRequest request) {
+        service.shipped(request);
+        return ResponseEntity.ok().body(null);
+    }
+    //Принять возврат товаров на склад.
+    @PostMapping("/return")
+    public ResponseEntity<Void> returnProduct(@RequestBody Map<UUID, Integer> products) {
+        return null;
     }
 }

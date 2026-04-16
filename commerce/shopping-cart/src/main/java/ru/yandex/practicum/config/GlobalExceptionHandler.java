@@ -5,9 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
-import ru.yandex.practicum.exception.NoProductsInShoppingCartException;
-import ru.yandex.practicum.exception.NotAuthorizedUserException;
-import ru.yandex.practicum.exception.ProductNotEnoughWarehouseException;
+import ru.yandex.practicum.exception.*;
 
 import java.time.LocalDateTime;
 
@@ -66,6 +64,36 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ProductNotEnoughWarehouseException.class)
     public ResponseEntity<ApiErrorResponse> handleProductNotEnoughWarehouseException(
             ProductNotEnoughWarehouseException ex,
+            WebRequest request) {
+
+        return ResponseEntity.status(ex.getHttpStatus())
+                .body(new ApiErrorResponse(
+                        ex.getHttpStatus().value(),
+                        ex.getHttpStatus().getReasonPhrase(),
+                        ex.getMessage(),
+                        ex.getUserMessage(),
+                        request.getContextPath() + request.getDescription(false)
+                ));
+    }
+
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ApiErrorResponse> handleServiceUnavailableException(
+            ServiceUnavailableException ex,
+            WebRequest request) {
+
+        return ResponseEntity.status(ex.getHttpStatus())
+                .body(new ApiErrorResponse(
+                        ex.getHttpStatus().value(),
+                        ex.getHttpStatus().getReasonPhrase(),
+                        ex.getMessage(),
+                        ex.getUserMessage(),
+                        request.getContextPath() + request.getDescription(false)
+                ));
+    }
+
+    @ExceptionHandler(OrderNotCreatedException.class)
+    public ResponseEntity<ApiErrorResponse> handleOrderNotCreatedException(
+            OrderNotCreatedException ex,
             WebRequest request) {
 
         return ResponseEntity.status(ex.getHttpStatus())
